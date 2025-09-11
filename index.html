@@ -302,32 +302,51 @@ print('teste')
 
         // Inicializar Firebase
     
-        async function initializeFirebase() {
-            try {
-                // A URL da sua Serverless Function no Vercel é a pasta `api`
-                const response = await fetch('/api/firebaseConfig');
-                
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar a configuração do Firebase.');
-                }
+    let db; // Torne a variável `db` global ou acessível
 
-                const firebaseConfig = await response.json();
-                
-                // Inicializa o Firebase com as credenciais obtidas de forma segura
-                firebase.initializeApp(firebaseConfig);
-                document.getElementById('status').textContent = 'Firebase inicializado com sucesso!';
-                
-                // Exemplo: usar o Firebase Auth
-                const auth = firebase.auth();
-                console.log('Firebase Auth está pronto para uso.');
-            } catch (error) {
-                console.error('Erro na inicialização do Firebase:', error);
-                document.getElementById('status').textContent = `Erro: ${error.message}`;
-            }
+    async function initializeFirebase() {
+        try {
+            const response = await fetch('/api/firebaseConfig');
+            const firebaseConfig = await response.json();
+            
+            firebase.initializeApp(firebaseConfig);
+            
+            // Atribua a instância do Firestore à variável `db`
+            db = firebase.firestore();
+            
+            console.log('Firebase e Firestore inicializados com sucesso!');
+
+            // Agora você pode chamar a função de salvar com segurança
+            // Exemplo:
+            // const dataToSave = { name: 'João', message: 'Olá, mundo!' };
+            // await saveToFirebase(dataToSave);
+        } catch (error) {
+            console.error('Erro na inicialização do Firebase:', error);
         }
+    }
 
-        // Chame a função para iniciar o processo
-        initializeFirebase();
+    async function saveToFirebase(data) {
+        try {
+            if (!db) {
+                // Se a variável `db` ainda não foi inicializada, chame a função e espere
+                await initializeFirebase();
+            }
+            
+            const docRef = await db.collection('comments').add({
+                ...data,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            console.log('Documento salvo com ID:', docRef.id);
+            return docRef.id;
+        } catch (error) {
+            console.error('Erro ao salvar no Firebase:', error);
+            throw error;
+        }
+    }
+
+    // Chama a função de inicialização quando a página carrega
+    initializeFirebase();
     
 
         // Inicializar o mapa
